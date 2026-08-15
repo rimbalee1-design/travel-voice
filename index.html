@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Smart Travel Assistant - 대화형 실시간 통역</title>
+<title>TravelAssistant - 실시간 대화형 통역기</title>
 <style>
 :root {
   --primary: #2563eb;
   --primary-bg: #eff6ff;
-  --success: #10b981;
+  --primary-hover: #1d4ed8;
+  --danger: #ef4444;
   --bg: #f8fafc;
   --card: #ffffff;
   --text: #0f172a;
@@ -17,209 +18,304 @@
   --clerk-bubble: #f1f5f9;
   --user-bubble: #2563eb;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
-.app { width: 100%; max-width: 480px; min-height: 100vh; display: flex; flex-direction: column; background: var(--card); }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: #0b0f19; }
+
+/* 100dvh 고정 레이아웃: 화면 밖으로 버튼이 밀리지 않음 */
+.app {
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  position: relative;
+}
 
 /* Header */
-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; position: sticky; top: 0; z-index: 20; }
-.logo { font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 6px; }
-.badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--primary-bg); color: var(--primary); font-weight: 700; }
-.status-pill { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: var(--muted); transition: 0.3s; }
-.status-pill.active { background: #fee2e2; color: #ef4444; animation: blink 1.2s infinite; }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  flex-shrink: 0;
+}
+.logo { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.badge { font-size: 11px; padding: 2px 6px; border-radius: 6px; background: var(--primary-bg); color: var(--primary); font-weight: 700; }
+.lang-mode-btn { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
 
-/* Conversation Timeline */
-.chat-container { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-.bubble { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 15px; line-height: 1.4; word-break: break-word; }
-.bubble.clerk { align-self: flex-start; background: var(--clerk-bubble); border-bottom-left-radius: 4px; }
+/* Conversation Timeline (스크롤 영역) */
+.chat-container {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+.bubble { max-width: 86%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+.bubble.clerk { align-self: flex-start; background: white; border: 1px solid var(--border); border-bottom-left-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
 .bubble.user { align-self: flex-end; background: var(--user-bubble); color: white; border-bottom-right-radius: 4px; }
-.bubble .orig { font-size: 12px; opacity: 0.7; margin-bottom: 2px; }
-.bubble .trans { font-size: 16px; font-weight: 700; }
+.bubble .orig { font-size: 11px; opacity: 0.75; margin-bottom: 2px; }
+.bubble .trans { font-size: 15px; font-weight: 700; }
 
-/* Smart Reply Box (Context Suggestions) */
-.smart-reply-section { background: var(--primary-bg); border-top: 1px solid #dbeafe; padding: 14px 16px; }
-.smart-title { font-size: 12px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-.reply-grid { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-.reply-card { background: white; border: 1px solid #bfdbfe; border-radius: 12px; padding: 10px 14px; text-align: left; cursor: pointer; transition: 0.15s; display: flex; justify-content: space-between; align-items: center; }
-.reply-card:active { transform: scale(0.98); background: #f0f9ff; border-color: var(--primary); }
-.reply-ko { font-size: 14px; font-weight: 700; color: var(--text); }
-.reply-ja { font-size: 12px; color: var(--primary); margin-top: 2px; }
-.reply-play { font-size: 16px; color: var(--primary); padding-left: 8px; }
+/* 스마트 추천 대답 칩 (가로 스크롤) */
+.smart-section {
+  background: var(--primary-bg);
+  border-top: 1px solid #dbeafe;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+.smart-header { font-size: 11px; font-weight: 800; color: var(--primary); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.chip-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.chip-scroll::-webkit-scrollbar { display: none; }
+.chip-item {
+  flex-shrink: 0;
+  background: white;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  max-width: 240px;
+}
+.chip-item:active { background: #dbeafe; }
+.chip-ko { font-size: 12.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-ja { font-size: 11px; color: var(--primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Action Footer */
-.footer-bar { padding: 12px 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: white; }
-.listen-btn { flex: 2; height: 52px; border-radius: 26px; border: none; background: var(--primary); color: white; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
-.listen-btn.rec { background: #ef4444; box-shadow: 0 4px 12px rgba(239,68,68,0.35); }
-.mode-toggle { flex: 1; height: 52px; border-radius: 26px; border: 1px solid var(--border); background: white; font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; }
+/* 하단 고정 컨트롤 도크 */
+.control-dock {
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 8px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
-/* Show Card Modal */
+/* 직접 타이핑 입력줄 */
+.input-row { display: flex; gap: 6px; }
+.text-input {
+  flex: 1;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 14px;
+  background: var(--bg);
+}
+.text-input:focus { border-color: var(--primary); background: white; }
+.send-btn {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--text);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 실시간 음성 청취 메인 버튼 */
+.mic-btn-main {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+  transition: 0.2s;
+}
+.mic-btn-main.active {
+  background: var(--danger);
+  box-shadow: 0 4px 12px rgba(239,68,68,0.35);
+  animation: pulse 1.2s infinite;
+}
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+
+/* 크게 보여주기 모달 */
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
 .modal.active { display: flex; }
-.modal-content { background: white; width: 100%; max-width: 380px; border-radius: 20px; padding: 24px; text-align: center; }
-.huge-text { font-size: 26px; font-weight: 900; color: var(--primary); margin: 16px 0 6px; line-height: 1.3; }
-.pron-text { font-size: 14px; color: var(--muted); margin-bottom: 16px; font-weight: 600; }
+.modal-box { background: white; width: 100%; max-width: 360px; border-radius: 20px; padding: 22px; text-align: center; }
+.modal-ja { font-size: 24px; font-weight: 900; color: var(--primary); margin: 14px 0 6px; line-height: 1.3; }
+.modal-pron { font-size: 13.5px; color: var(--muted); margin-bottom: 14px; font-weight: 600; }
 </style>
 </head>
 <body>
 
 <div class="app">
+  <!-- 헤더 -->
   <header>
-    <div class="logo">✈️ TravelAssistant <span class="badge">KO ↔ JA</span></div>
-    <div id="status-pill" class="status-pill">대기 중</div>
+    <div class="logo">✈️ TravelAssistant <span class="badge">실시간</span></div>
+    <button class="lang-mode-btn" id="mode-btn" onclick="toggleLangMode()">🇯🇵 상대방: 일본어</button>
   </header>
 
-  <!-- 대화 내용 스트림 -->
+  <!-- 실시간 대화창 -->
   <div class="chat-container" id="chat">
     <div class="bubble clerk">
       <div class="orig">🇯🇵 안내</div>
-      <div class="trans">하단의 [상대방 말 듣기]를 켜두시면 현지인 음성을 실시간 번역하고 대답 선택지를 만들어 드립니다.</div>
+      <div class="trans">하단의 [상대방 일본어 듣기]를 켜두시면 실시간으로 인식하여 번역 및 답변 추천을 제공합니다. 직접 입력도 가능합니다.</div>
     </div>
   </div>
 
-  <!-- 스마트 답변 선택지 (Context Suggestions) -->
-  <div class="smart-reply-section" id="smart-section">
-    <div class="smart-title">✨ 터치해서 대답하기 (음성 즉시 재생)</div>
-    <div class="reply-grid" id="reply-grid">
-      <!-- 기본 초기 답변 프리셋 -->
-      <div class="reply-card" onclick="respondWith('네, 부탁드립니다.', 'はい、お願いします。', '하이, 오네가이시마스')">
-        <div>
-          <div class="reply-ko">네, 부탁드립니다.</div>
-          <div class="reply-ja">はい、お願いします。</div>
-        </div>
-        <div class="reply-play">🔊</div>
+  <!-- 스마트 추천 답변 (상황별 자동 갱신) -->
+  <div class="smart-section">
+    <div class="smart-header">
+      <span>✨ 터치해서 즉시 일본어로 말하기</span>
+      <span style="font-size:10px; color:var(--muted);">좌우로 넘겨보세요 ➔</span>
+    </div>
+    <div class="chip-scroll" id="chip-container">
+      <!-- 기본 초기 답변 칩 -->
+      <div class="chip-item" onclick="sendReply('네, 부탁드립니다.', 'はい、お願いします。', '하이, 오네가이시마스')">
+        <div class="chip-ko">네, 부탁드립니다.</div>
+        <div class="chip-ja">はい、お願いします。</div>
       </div>
-      <div class="reply-card" onclick="respondWith('아니요, 괜찮습니다.', 'いいえ、大丈夫です。', '이이에, 다이죠-부데스')">
-        <div>
-          <div class="reply-ko">아니요, 괜찮습니다.</div>
-          <div class="reply-ja">いいえ、大丈夫です。</div>
-        </div>
-        <div class="reply-play">🔊</div>
+      <div class="chip-item" onclick="sendReply('아니요, 괜찮습니다.', 'いいえ、大丈夫です。', '이이에, 다이죠-부데스')">
+        <div class="chip-ko">아니요, 괜찮습니다.</div>
+        <div class="chip-ja">いいえ、大丈夫です。</div>
+      </div>
+      <div class="chip-item" onclick="sendReply('얼마인가요?', 'いくらですか？', '이쿠라데스카?')">
+        <div class="chip-ko">얼마인가요?</div>
+        <div class="chip-ja">いくらですか？</div>
+      </div>
+      <div class="chip-item" onclick="sendReply('감사합니다!', 'ありがとうございます！', '아리가토- 고자이마스')">
+        <div class="chip-ko">감사합니다!</div>
+        <div class="chip-ja">ありがとうございます！</div>
       </div>
     </div>
   </div>
 
-  <!-- 하단 컨트롤 도크 -->
-  <div class="footer-bar">
-    <button id="listen-btn" class="listen-btn" onclick="toggleListen()">
+  <!-- 하단 고정 컨트롤 영역 -->
+  <div class="control-dock">
+    <!-- 1. 직접 타이핑 입력란 -->
+    <div class="input-row">
+      <input type="text" id="custom-text" class="text-input" placeholder="직접 한국어로 입력..." onkeypress="handleEnter(event)">
+      <button class="send-btn" onclick="sendCustomInput()">말하기 ➔</button>
+    </div>
+
+    <!-- 2. 실시간 청취 메인 버튼 -->
+    <button id="listen-btn" class="mic-btn-main" onclick="toggleListening()">
       <span id="mic-icon">🎙️</span>
-      <span id="mic-text">상대방 말 듣기</span>
+      <span id="mic-label">상대방 일본어 듣기 시작</span>
     </button>
-    <button class="mode-toggle" id="target-mode-btn" onclick="toggleLanguageMode()">🇯🇵 듣는 중</button>
   </div>
 </div>
 
 <!-- 현지인 제시용 모달 -->
 <div id="modal" class="modal" onclick="if(event.target === this) this.classList.remove('active')">
-  <div class="modal-content">
-    <div style="font-size:12px; font-weight:700; color:var(--muted);">🪧 화면을 보여주세요</div>
-    <div id="m-ja" class="huge-text"></div>
-    <div id="m-pron" class="pron-text"></div>
-    <div id="m-ko" style="font-size:14px; color:var(--muted); border-top:1px dashed var(--border); padding-top:12px;"></div>
-    <button style="margin-top:18px; width:100%; padding:12px; border-radius:12px; border:none; background:var(--primary); color:white; font-weight:bold; cursor:pointer;" onclick="document.getElementById('modal').classList.remove('active')">확인 완료</button>
+  <div class="modal-box">
+    <div style="font-size:12px; font-weight:700; color:var(--muted);">🪧 현지인에게 보여주세요</div>
+    <div id="m-ja" class="modal-ja"></div>
+    <div id="m-pron" class="modal-pron"></div>
+    <div id="m-ko" style="font-size:13px; color:var(--muted); border-top:1px dashed var(--border); padding-top:10px;"></div>
+    <button style="margin-top:16px; width:100%; padding:10px; border-radius:10px; border:none; background:var(--primary); color:white; font-weight:bold; cursor:pointer;" onclick="document.getElementById('modal').classList.remove('active')">닫기</button>
   </div>
 </div>
 
 <script>
-// 스마트 상황별 응답 지식 베이스
-const CONTEXT_RULES = [
+// 상황별 대답 프리셋 데이터
+const SCENARIOS = [
   {
-    keywords: ["カード", "現金", "支払い", "会計", "レジ", "결제", "카드", "계산"],
-    suggestions: [
+    keys: ["カード", "現金", "支払い", "会計", "レジ", "결제", "카드", "계산"],
+    chips: [
       { ko: "카드로 결제할게요.", ja: "カードでお願いします。", pron: "카-도데 오네가이시마스" },
       { ko: "현금으로 낼게요.", ja: "現金で払います。", pron: "겐킨데 하라이마스" },
-      { ko: "영수증도 같이 주세요.", ja: "レシートもいただけますか？", pron: "레시-토모 이타다케마스카?" },
-      { ko: "면세(Tax-Free) 가능한가요?", ja: "免税はできますか？", pron: "멘제이와 데키마스카?" }
+      { ko: "영수증 주세요.", ja: "レシートをください。", pron: "레시-토오 쿠다사이" },
+      { ko: "면세(Tax Free) 되나요?", ja: "免税はできますか？", pron: "멘제이와 데키마스카?" }
     ]
   },
   {
-    keywords: ["袋", "ポイント", "レシート", "봉투", "포인트"],
-    suggestions: [
-      { ko: "봉투는 괜찮습니다. (필요 없어요)", ja: "袋は大丈夫です（いりません）。", pron: "후쿠로와 다이죠-부데스" },
-      { ko: "비닐봉투 하나 주세요.", ja: "レジ袋を1枚ください。", pron: "레지부쿠로오 이치마이 쿠다사이" },
-      { ko: "포인트 카드는 없어요.", ja: "ポイントカードはありません。", pron: "포인토 카-도와 아리마센" }
+    keys: ["袋", "ポイント", "シール", "봉투", "포인트"],
+    chips: [
+      { ko: "봉투는 필요 없어요.", ja: "袋はいりません。", pron: "후쿠로와 이리마센" },
+      { ko: "봉투 하나 주세요.", ja: "袋を1枚お願いします。", pron: "후쿠로오 이치마이 오네가이시마스" },
+      { ko: "포인트 카드 없어요.", ja: "ポイントカードはないです。", pron: "포인토 카-도와 나이데스" }
     ]
   },
   {
-    keywords: ["チェックイン", "予約", "荷物", "名前", "호텔", "체크인", "예약", "짐"],
-    suggestions: [
-      { ko: "체크인 부탁합니다. (예약자예요)", ja: "チェックインをお願いします。予約しています。", pron: "체쿠인오 오네가이시마스" },
-      { ko: "체크인 전에 짐을 맡길 수 있나요?", ja: "チェックイン前に荷物を預けられますか？", pron: "체쿠인 마에니 니모츠오 아즈케라레마스카?" },
-      { ko: "와이파이 비밀번호가 무엇인가요?", ja: "Wi-Fiのパスワードは何ですか？", pron: "와이파이노 파스와-도와 난데스카?" }
+    keys: ["チェックイン", "予約", "荷物", "名前", "호텔", "체크인", "예약"],
+    chips: [
+      { ko: "체크인 부탁합니다.", ja: "チェックインをお願いします。", pron: "체쿠인오 오네가이시마스" },
+      { ko: "짐을 맡길 수 있나요?", ja: "荷物を預けられますか？", pron: "니모츠오 아즈케라레마스카?" },
+      { ko: "와이파이 비번이 뭔가요?", ja: "Wi-Fiのパスワードは何ですか？", pron: "와이파이노 파스와-도와 난데스카?" }
     ]
   },
   {
-    keywords: ["席", "名様", "メニュー", "注文", "식당", "자리", "몇 분", "주문"],
-    suggestions: [
-      { ko: "2명입니다. 자리 있나요?", ja: "2人です。席は空いていますか？", pron: "후타리데스. 세키와 아이테이마스카?" },
+    keys: ["席", "名様", "メニュー", "注文", "자리", "몇 분", "식당"],
+    chips: [
+      { ko: "2명입니다. 자리 있나요?", ja: "2人です。席はありますか？", pron: "후타리데스. 세키와 아리마스카?" },
       { ko: "추천 메뉴가 무엇인가요?", ja: "おすすめは何ですか？", pron: "오스스메와 난데스카?" },
-      { ko: "물 좀 더 주시겠어요?", ja: "お冷（お水）をいただけますか？", pron: "오히야오 이타다케마스카?" },
-      { ko: "계산서 부탁드립니다.", ja: "お会計をお願いします。", pron: "오카이케이오 오네가이시마스" }
-    ]
-  },
-  {
-    keywords: ["駅", "どこ", "場所", "トイレ", "길", "역", "어디", "화장실"],
-    suggestions: [
-      { ko: "화장실은 어디인가요?", ja: "トイレはどこですか？", pron: "토이레와 도코데스카?" },
-      { ko: "가장 가까운 지하철역이 어디죠?", ja: "一番近い駅はどこですか？", pron: "이치방 치카이 에키와 도코데스카?" },
-      { ko: "지도에서 위치를 짚어주실 수 있나요?", ja: "マップで指を差してもらえますか？", pron: "맛푸데 유비오 사시테 모라에마스카?" }
+      { ko: "계산서 부탁합니다.", ja: "お会計をお願いします。", pron: "오카이케이오 오네가이시마스" },
+      { ko: "물 좀 더 주세요.", ja: "お水をいただけますか？", pron: "오미즈오 이타다케마스카?" }
     ]
   }
 ];
 
-let listenLang = "ja-JP"; // 기본: 일본인 음성 인식
+let listenLang = "ja-JP"; // 기본: 일본인 음성 듣기
 let isListening = false;
 let recognition = null;
 
-// 음성 인식 초기화 (Web Speech API)
+// 1. 음성 인식 설정 (Web Speech API)
 function initSpeech() {
   const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Speech) {
-    alert("현재 브라우저에서 실시간 음성 인식을 지원하지 않습니다. Chrome 또는 Safari 최신 버전을 사용해주세요.");
+    alert("현재 브라우저에서 마이크 음성 인식을 지원하지 않습니다. 모바일 크롬 또는 사파리를 이용해주세요.");
     return;
   }
   recognition = new Speech();
-  recognition.continuous = true; // 대화 흐름을 위해 연속 청취
+  recognition.continuous = true;
   recognition.interimResults = false;
 
   recognition.onstart = () => {
     isListening = true;
-    document.getElementById("status-pill").textContent = "🎙️ 실시간 청취 중";
-    document.getElementById("status-pill").classList.add("active");
-    document.getElementById("listen-btn").classList.add("rec");
-    document.getElementById("mic-text").textContent = "청취 중지하기";
+    const btn = document.getElementById("listen-btn");
+    btn.classList.add("active");
+    document.getElementById("mic-icon").textContent = "⏹️";
+    document.getElementById("mic-label").textContent = "실시간 청취 중단하기";
   };
 
   recognition.onresult = async (e) => {
     const text = e.results[e.results.length - 1][0].transcript.trim();
     if (!text) return;
-    
-    // 1. 상대방 발화 말풍선 추가
-    addMessage("clerk", text, "번역 중...");
 
-    // 2. 번역 및 대답 선택지 분석
-    const translated = await translateText(text, listenLang === "ja-JP" ? "ja" : "ko", listenLang === "ja-JP" ? "ko" : "ja");
-    updateLastClerkMessage(text, translated);
+    addChatBubble("clerk", text, "번역 중...");
     
-    // 3. 문맥 분석 후 사용자에게 대답할 카드들 자동 생성
-    generateSmartReplies(text, translated);
+    // 번역 처리
+    const src = listenLang === "ja-JP" ? "ja" : "ko";
+    const dst = listenLang === "ja-JP" ? "ko" : "ja";
+    const trans = await fetchTranslation(text, src, dst);
+    updateLastClerkBubble(text, trans);
+
+    // 상황 감지 후 칩 갱신
+    updateSmartChips(text, trans);
   };
 
-  recognition.onerror = (e) => {
-    console.error("Speech Rec Error:", e.error);
-    stopListening();
-  };
-
+  recognition.onerror = () => stopListening();
   recognition.onend = () => {
     if (isListening) {
-      try { recognition.start(); } catch(err) {}
+      try { recognition.start(); } catch(e) {}
     } else {
       stopListening();
     }
   };
 }
 
-function toggleListen() {
+function toggleListening() {
   if (!recognition) initSpeech();
   if (!recognition) return;
 
@@ -233,35 +329,55 @@ function toggleListen() {
       recognition.start();
     } catch(e) {
       recognition.stop();
-      setTimeout(() => recognition.start(), 200);
+      setTimeout(() => recognition.start(), 250);
     }
   }
 }
 
 function stopListening() {
   isListening = false;
-  document.getElementById("status-pill").textContent = "대기 중";
-  document.getElementById("status-pill").classList.remove("active");
-  document.getElementById("listen-btn").classList.remove("rec");
-  document.getElementById("mic-text").textContent = "상대방 말 듣기";
+  const btn = document.getElementById("listen-btn");
+  btn.classList.remove("active");
+  document.getElementById("mic-icon").textContent = "🎙️";
+  document.getElementById("mic-label").textContent = listenLang === "ja-JP" ? "상대방 일본어 듣기 시작" : "상대방 한국어 듣기 시작";
 }
 
-function toggleLanguageMode() {
+function toggleLangMode() {
   if (listenLang === "ja-JP") {
     listenLang = "ko-KR";
-    document.getElementById("target-mode-btn").textContent = "🇰🇷 한국인 듣기";
+    document.getElementById("mode-btn").textContent = "🇰🇷 상대방: 한국어";
   } else {
     listenLang = "ja-JP";
-    document.getElementById("target-mode-btn").textContent = "🇯🇵 일본인 듣기";
+    document.getElementById("mode-btn").textContent = "🇯🇵 상대방: 일본어";
   }
   if (isListening && recognition) {
     recognition.stop();
     setTimeout(() => { recognition.lang = listenLang; recognition.start(); }, 300);
+  } else {
+    stopListening();
   }
 }
 
-// 실시간 번역 처리 (MyMemory Free API + 로컬 사전)
-async function translateText(q, src, dst) {
+// 2. 직접 타이핑 입력 처리
+async function sendCustomInput() {
+  const input = document.getElementById("custom-text");
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+  input.blur();
+
+  // 한국어 -> 일본어 번역
+  const translated = await fetchTranslation(text, "ko", "ja");
+  sendReply(text, translated, "");
+}
+
+function handleEnter(e) {
+  if (e.key === "Enter") sendCustomInput();
+}
+
+// 3. 번역 API (MyMemory)
+async function fetchTranslation(q, src, dst) {
   try {
     const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${src}|${dst}`);
     const data = await res.json();
@@ -271,74 +387,69 @@ async function translateText(q, src, dst) {
   }
 }
 
-// 대화 버블 렌더링
-function addMessage(role, orig, trans) {
+// 4. 말풍선 렌더링
+function addChatBubble(role, orig, trans) {
   const chat = document.getElementById("chat");
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
-  div.innerHTML = `<div class="orig">${role === 'clerk' ? '🇯🇵 원문: ' : '🇰🇷 내 대답: '}${orig}</div><div class="trans">${trans}</div>`;
+  div.innerHTML = `<div class="orig">${role === 'clerk' ? '🇯🇵 원문: ' : '🇰🇷 내 말: '}${orig}</div><div class="trans">${trans}</div>`;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-function updateLastClerkMessage(orig, trans) {
+function updateLastClerkBubble(orig, trans) {
   const bubbles = document.querySelectorAll(".bubble.clerk");
   const last = bubbles[bubbles.length - 1];
   if (last) {
-    last.innerHTML = `<div class="orig">🇯🇵 현지인: ${orig}</div><div class="trans">🇰🇷 번역: ${trans}</div>`;
+    last.innerHTML = `<div class="orig">🇯🇵 현지인: ${orig}</div><div class="trans">🇰🇷 ${trans}</div>`;
   }
 }
 
-// 상대방 말의 키워드를 분석하여 적절한 대답 리스트 띄우기
-function generateSmartReplies(rawText, transText) {
+// 5. 추천 칩 갱신
+function updateSmartChips(rawText, transText) {
   const full = rawText + " " + transText;
   let matched = null;
 
-  for (const rule of CONTEXT_RULES) {
-    if (rule.keywords.some(k => full.includes(k))) {
-      matched = rule.suggestions;
+  for (const item of SCENARIOS) {
+    if (item.keys.some(k => full.includes(k))) {
+      matched = item.chips;
       break;
     }
   }
 
-  // 매칭된 특수 카테고리가 없으면 기본 대화 응답 제공
   if (!matched) {
     matched = [
       { ko: "네, 알겠습니다.", ja: "はい、分かりました。", pron: "하이, 와카리마시타" },
-      { ko: "조금 천천히 말씀해 주실 수 있나요?", ja: "もう少しゆっくり話していただけますか？", pron: "모- 스코시 윳쿠리 하나시테 이타다케마스카?" },
-      { ko: "이것으로 주세요.", ja: "これをお願いします。", pron: "코레오 오네가이시마스" },
-      { ko: "감사합니다!", ja: "ありがとうございます！", pron: "아리가토- 고자이마스" }
+      { ko: "천천히 말씀해 주세요.", ja: "ゆっくり話してください。", pron: "윳쿠리 하나시테 쿠다사이" },
+      { ko: "이것으로 할게요.", ja: "これにします。", pron: "코레니 시마스" },
+      { ko: "감사합니다.", ja: "ありがとうございます。", pron: "아리가토- 고자이마스" }
     ];
   }
 
-  const grid = document.getElementById("reply-grid");
-  grid.innerHTML = matched.map(s => `
-    <div class="reply-card" onclick="respondWith('${s.ko}', '${s.ja}', '${s.pron}')">
-      <div>
-        <div class="reply-ko">${s.ko}</div>
-        <div class="reply-ja">${s.ja} · <span style="color:#64748b;">${s.pron}</span></div>
-      </div>
-      <div class="reply-play">🔊</div>
+  const container = document.getElementById("chip-container");
+  container.innerHTML = matched.map(c => `
+    <div class="chip-item" onclick="sendReply('${c.ko}', '${c.ja}', '${c.pron || ''}')">
+      <div class="chip-ko">${c.ko}</div>
+      <div class="chip-ja">${c.ja}</div>
     </div>
   `).join("");
 }
 
-// 선택지 터치 시: 음성 출력 + 채팅창 기록 + 크게 보여주기 모달
-function respondWith(ko, ja, pron) {
-  // 1. 내 대답 말풍선 추가
-  addMessage("user", ko, ja);
+// 6. 응답 실행 (채팅 추가 + TTS + 팝업)
+function sendReply(ko, ja, pron) {
+  addChatBubble("user", ko, ja);
 
-  // 2. 일본어 음성 재생 (TTS)
+  // 음성 재생
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(ja);
   u.lang = "ja-JP";
   u.rate = 0.95;
   window.speechSynthesis.speak(u);
 
-  // 3. 화면 크게 보여주기 모달 트리거
+  // 크게 보여주기 모달
   document.getElementById("m-ja").textContent = ja;
-  document.getElementById("m-pron").textContent = "🗣️ " + pron;
-  document.getElementById("m-ko").textContent = "한국어 뜻: " + ko;
+  document.getElementById("m-pron").textContent = pron ? "🗣️ " + pron : "";
+  document.getElementById("m-ko").textContent = "한국어: " + ko;
   document.getElementById("modal").classList.add("active");
 }
 </script>
